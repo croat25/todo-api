@@ -41,21 +41,33 @@ app.get('/todos', function(req, res) {
 // GET /todos/:id
 app.get('/todos/:id', function(req, res) {
 	var todoId = parseInt(req.params.id, 10);
-	var matchedTodo = _.findWhere(todos, {
-		id: todoId
-	});
 
-	if (matchedTodo) {
-		res.json(matchedTodo);
-	} else {
-		res.status(404).send();
-	}
+	db.todo.findById(todoId).then(function(todo){
+		if(!!todo){
+			res.json(todo.toJSON());
+		}else{
+			res.status(404).send();
+		}
+	},function(e){
+		res.status(500).send();
+	});
+	// var matchedTodo = _.findWhere(todos, {
+	// 	id: todoId
+	// });
+
+	// if (matchedTodo) {
+	// 	res.json(matchedTodo);
+	// } else {
+	// 	res.status(404).send();
+	// }
 });
 
 // POST /todos
 app.post('/todos', function(req, res) {
+	//pick wat attriubutes u want from body which is desciption and completed
 	var body = _.pick(req.body, 'description', 'completed');
-
+	//database of todo u gonna create a body then a function which passes todo
+	// respond with a json and passed in paramete and change it to json
 	db.todo.create(body).then(function (todo) {
 		res.json(todo.toJSON());
 	}, function (e) {
