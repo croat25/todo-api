@@ -16,28 +16,30 @@ app.get('/', function(req, res) {
 
 // GET /todos?completed=false&q=work
 app.get('/todos', function(req, res) {
-	
 
-	 var query = req.query;
-	 var where={};
 
-	 if(query.hasOwnProperty('completed')&& query.completed ==='true'){
-	 	where.completed=true;
-	 }else if(query.hasOwnProperty('completed')&& query.completed==='false'){
-	 	where.completed=false;
-	 }
-	 if(query.hasOwnProperty('q')&& query.q.length>0){
-	 	where.description={
-	 			$like : '%'+query.q+"%"
-	 	};
-	 }
+	var query = req.query;
+	var where = {};
 
-	 db.todo.findAll({where:where}).then(function(todos){
-	 	res.json(todos);
-	 },function(e){
-	 	res.status(500).send();
-	 })
-	// var filteredTodos = todos;
+	if (query.hasOwnProperty('completed') && query.completed === 'true') {
+		where.completed = true;
+	} else if (query.hasOwnProperty('completed') && query.completed === 'false') {
+		where.completed = false;
+	}
+	if (query.hasOwnProperty('q') && query.q.length > 0) {
+		where.description = {
+			$like: '%' + query.q + "%"
+		};
+	}
+
+	db.todo.findAll({
+			where: where
+		}).then(function(todos) {
+			res.json(todos);
+		}, function(e) {
+			res.status(500).send();
+		})
+		// var filteredTodos = todos;
 
 	// if (queryParams.hasOwnProperty('completed') && queryParams.completed === 'true') {
 	// 	filteredTodos = _.where(filteredTodos, {
@@ -62,13 +64,13 @@ app.get('/todos', function(req, res) {
 app.get('/todos/:id', function(req, res) {
 	var todoId = parseInt(req.params.id, 10);
 
-	db.todo.findById(todoId).then(function(todo){
-		if(!!todo){
+	db.todo.findById(todoId).then(function(todo) {
+		if (!!todo) {
 			res.json(todo.toJSON());
-		}else{
+		} else {
 			res.status(404).send();
 		}
-	},function(e){
+	}, function(e) {
 		res.status(500).send();
 	});
 	// var matchedTodo = _.findWhere(todos, {
@@ -88,9 +90,9 @@ app.post('/todos', function(req, res) {
 	var body = _.pick(req.body, 'description', 'completed');
 	//database of todo u gonna create a body then a function which passes todo
 	// respond with a json and passed in paramete and change it to json
-	db.todo.create(body).then(function (todo) {
+	db.todo.create(body).then(function(todo) {
 		res.json(todo.toJSON());
-	}, function (e) {
+	}, function(e) {
 		res.status(400).json(e);
 	});
 	// call create on db.todo
@@ -113,18 +115,20 @@ app.post('/todos', function(req, res) {
 app.delete('/todos/:id', function(req, res) {
 	var todoId = parseInt(req.params.id, 10);
 	db.todo.destroy({
-		where:{//how to use destroy keyword identify were u wanna delete how u gonna
+		where: { //how to use destroy keyword identify were u wanna delete how u gonna
 			//find the id and todoid is the parse int paramenter
-			id:todoId
+			id: todoId
 		}
-	}).then(function(rowsdeleted){
-		if(rowsdeleted === 0){
-			res.status(404).json({error:'no toddo with id'});
-		}else{
+	}).then(function(rowsdeleted) {
+		if (rowsdeleted === 0) {
+			res.status(404).json({
+				error: 'no toddo with id'
+			});
+		} else {
 			res.status(204).send();
 		}
 
-	},function(){
+	}, function() {
 		res.status(500).send();
 	})
 
@@ -145,30 +149,48 @@ app.delete('/todos/:id', function(req, res) {
 // PUT /todos/:id
 app.put('/todos/:id', function(req, res) {
 	var todoId = parseInt(req.params.id, 10);
-	var matchedTodo = _.findWhere(todos, {
-		id: todoId
-	});
+	// var matchedTodo = _.findWhere(todos, {
+	// 	id: todoId
+	// });
 	var body = _.pick(req.body, 'description', 'completed');
-	var validAttributes = {};
+	var attributes = {};
 
-	if (!matchedTodo) {
-		return res.status(404).send();
-	}
+	// if (!matchedTodo) {
+	// 	return res.status(404).send();
+	// }
 
-	if (body.hasOwnProperty('completed') && _.isBoolean(body.completed)) {
-		validAttributes.completed = body.completed;
-	} else if (body.hasOwnProperty('completed')) {
-		return res.status(400).send();
-	}
+	if (body.hasOwnProperty('completed') /*&& _.isBoolean(body.completed)*/ ) {
+		attributes.completed = body.completed;
+	} // else if (body.hasOwnProperty('completed')) {
+	// 	return res.status(400).send();
+	// }
 
-	if (body.hasOwnProperty('description') && _.isString(body.description) && body.description.trim().length > 0) {
-		validAttributes.description = body.description;
-	} else if (body.hasOwnProperty('description')) {
-		return res.status(400).send();
-	}
+	if (body.hasOwnProperty('description') /* && _.isString(body.description) && body.description.trim().length > 0*/ ) {
+		attributes.description = body.description;
+	} //else if (body.hasOwnProperty('description')) {
+	// 	return res.status(400).send();
+	// }
+	db.todo.findById(todoId).then(function(todo) {
 
-	_.extend(matchedTodo, validAttributes);
-	res.json(matchedTodo);
+			///////////////////everything between here is for the findbyid clause
+			if (todo) {
+				return todo.update(attributes);
+			} else {
+				res.status(404).send();
+			}
+
+		}, function() {
+			res.status(500).send();
+		})
+		////////////////belown this is for a todo.update goes poorly
+		.then(function(todo) {
+			res.json(todo.toJSON());
+		}, function(e) {
+			res.status(400).json(e);
+
+		});
+	// _.extend(matchedTodo, validAttributes);
+	// res.json(matchedTodo);
 });
 
 db.sequelize.sync().then(function() {
